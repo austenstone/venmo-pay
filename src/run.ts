@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import * as core from '@actions/core';
+import { writeFileSync } from 'fs';
 import fetch from 'node-fetch';
 
 interface Input {
@@ -70,24 +71,32 @@ const run = async (): Promise<void> => {
       'Content-Type': 'application/json'
     }
   });
-  console.log(ans);
 
-  // const request = async (method, path, body?): Promise<any> => {
-  //   console.log('->', path, body);
-  //   const response = await fetch(`${base}/${path}`, {
-  //     method: method,
-  //     body: JSON.stringify(body),
-  //     headers: {
-  //       'Authorization': `Bearer ${access?.access_token}`,
-  //       'device-id': '88884260-05O3-8U81-58I1-2WA76F357GR9',
-  //       'Content-Type': 'application/json'
-  //     }
-  //   });
-  //   console.log('<-', response);
-  //   return response;
-  // }
+  const access: Access = await ans.json();
+  process.env.access_token = access.access_token;
+  console.log(access);
 
-  // await request('GET', `users/${access.user.id}/friends?limit=1337`);
+  const request = async (method, path, body?): Promise<any> => {
+    console.log('->', path, body);
+    const response = await fetch(`${base}/${path}`, {
+      method: method,
+      body: JSON.stringify(body),
+      headers: {
+        'Authorization': `Bearer ${access?.access_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('<-', response);
+    return response.json();
+  }
+
+  const user = 'goosetoe';
+  const searchResponse = await request('GET', `users?query=${user}&limit=50&offset=0`);
+  console.log(searchResponse);
+
+  writeFileSync('friends.json', JSON.stringify(searchResponse, null, 2));
+  const goose = searchResponse.data.find(friend => friend.username === 'goosetoe');
+  console.log(goose);
 
   // await request('POST', `payments`, {
   //   user_id: 4696228937479104362,
