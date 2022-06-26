@@ -3853,6 +3853,116 @@ exports.debug = debug; // for test
 
 /***/ }),
 
+/***/ 584:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Venmo = void 0;
+const node_fetch_1 = __importDefault(__nccwpck_require__(467));
+const readline_1 = __importDefault(__nccwpck_require__(521));
+class Venmo {
+    constructor(deviceId) {
+        this.deviceId = '88884260-05O3-8U81-58I1-2WA76F357GR9';
+        this._fetch = (method, path, body, headers, options) => __awaiter(this, void 0, void 0, function* () {
+            console.log('->', path, body, headers);
+            return (0, node_fetch_1.default)(`${Venmo.base}/${path}`, Object.assign({ method: method, body: JSON.stringify(body), headers: Object.assign({ 'Content-Type': 'application/json' }, headers) }, options)).then(res => {
+                console.log('<-', res);
+                return res;
+            });
+        });
+        this.login = (phoneEmailUsername, password, headers) => {
+            return this._fetch('POST', 'oauth/access_token', {
+                phone_email_or_username: phoneEmailUsername,
+                client_id: 1,
+                password: password
+            }, Object.assign({ 'device-id': this.deviceId }, headers));
+        };
+        this.twoFactor = (otpSecret) => {
+            return this._fetch('POST', `account/two-factor/token`, {
+                via: "sms"
+            }, {
+                'device-id': this.deviceId,
+                'venmo-otp-secret': otpSecret,
+            });
+        };
+        this.easyLogin = (phoneEmailUsername, password) => __awaiter(this, void 0, void 0, function* () {
+            const ans = yield this.login(phoneEmailUsername, password);
+            if (ans.ok) {
+                this.access = yield ans.json();
+                return this.access;
+            }
+            const otpSecret = ans.headers.get('venmo-otp-secret');
+            if (!otpSecret) {
+                throw new Error('No otp secret');
+            }
+            const twoFactorResponse = yield this.twoFactor(otpSecret);
+            if (!twoFactorResponse.ok) {
+                throw new Error('Two factor request failed');
+            }
+            const otpCode = yield new Promise((res) => {
+                readline_1.default.createInterface({
+                    input: process.stdin,
+                    output: process.stdout
+                }).question('Enter OTP code:', (answer) => res(answer));
+            });
+            const twoFactorLoginResponse = yield this.login(phoneEmailUsername, password, {
+                'venmo-otp-secret': otpSecret,
+                'venmo-otp': otpCode
+            });
+            if (!twoFactorLoginResponse.ok) {
+                throw new Error('Two factor failed. Check code.');
+            }
+            this.access = yield twoFactorLoginResponse.json();
+        });
+        this.request = (method, path, body) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            if (!((_a = this.access) === null || _a === void 0 ? void 0 : _a.access_token)) {
+                throw new Error('Not logged in');
+            }
+            return this._fetch(method, path, body, {
+                'Authorization': `Bearer ${this.access.access_token}`,
+            });
+        });
+        this.userQuery = (query) => __awaiter(this, void 0, void 0, function* () {
+            return this.request('GET', `users?query=${query}&limit=10&offset=0`).then(res => {
+                if (res.ok) {
+                    return res.json().then(json => json.data);
+                }
+                return [];
+            });
+        });
+        this.pay = (userId, amount, note, audience) => __awaiter(this, void 0, void 0, function* () {
+            return this.request('POST', 'payments', {
+                user_id: userId,
+                amount: amount,
+                note: note,
+                audience: audience ? audience : 'private'
+            });
+        });
+        this.deviceId = deviceId || '88884260-05O3-8U81-58I1-2WA76F357GR9';
+        this.access = undefined;
+    }
+}
+exports.Venmo = Venmo;
+Venmo.base = 'https://api.venmo.com/v1';
+
+
+/***/ }),
+
 /***/ 886:
 /***/ ((module) => {
 
@@ -5866,99 +5976,42 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getInputs = void 0;
 const core = __importStar(__nccwpck_require__(186));
-const node_fetch_1 = __importDefault(__nccwpck_require__(467));
-const readline_1 = __importDefault(__nccwpck_require__(521));
+const venmo_typescript_1 = __nccwpck_require__(584);
 function getInputs() {
     const result = {};
-    result.phone_email_or_username = core.getInput('phone_email_or_username') || process.env.email || '';
-    result.password = core.getInput('password') || process.env.password || '';
-    result.usernames = core.getInput('usernames') || process.env.usernames || '';
+    result.phone_email_or_username = core.getInput('phone_email_or_username');
+    result.password = core.getInput('password');
+    result.usernames = core.getInput('usernames');
+    result.amount = parseInt(core.getInput('amount'));
+    result.note = core.getInput('note');
+    result.audience = core.getInput('audience') === 'public' ? 'public' : 'private';
     return result;
 }
 exports.getInputs = getInputs;
 const run = () => __awaiter(void 0, void 0, void 0, function* () {
-    const base = 'https://api.venmo.com/v1';
-    const deviceId = '88884260-05O3-8U81-58I1-2WA76F357GR9';
     const input = getInputs();
-    const login = (phoneEmailUsername, password, headers) => {
-        console.log('login', phoneEmailUsername, password, headers);
-        return (0, node_fetch_1.default)(`${base}/oauth/access_token`, {
-            method: 'POST',
-            body: JSON.stringify({
-                phone_email_or_username: phoneEmailUsername,
-                client_id: 1,
-                password: password
-            }),
-            headers: Object.assign({ 'device-id': deviceId, 'Content-Type': 'application/json' }, headers)
-        });
-    };
-    let access;
-    if (process.env.access) {
-        access = JSON.parse(process.env.access);
-    }
-    else {
-        const ans = yield login(input.phone_email_or_username, input.password);
-        if (ans.ok) {
-            access = yield ans.json();
-        }
-        else {
-            const otpSecret = ans.headers.get('venmo-otp-secret');
-            if (!otpSecret)
-                return;
-            const twoFactorResponse = yield (0, node_fetch_1.default)(`${base}/account/two-factor/token`, {
-                method: 'POST',
-                body: JSON.stringify({
-                    via: "sms"
-                }),
-                headers: {
-                    'device-id': deviceId,
-                    'venmo-otp-secret': otpSecret,
-                    'Content-Type': 'application/json'
-                }
-            });
-            if (!twoFactorResponse.ok)
-                return;
-            const otpCode = yield new Promise((res) => {
-                readline_1.default.createInterface({
-                    input: process.stdin,
-                    output: process.stdout
-                }).question('Enter OTP code:', (answer) => res(answer));
-            });
-            const ans2 = yield login(input.phone_email_or_username, input.password, {
-                'venmo-otp-secret': otpSecret,
-                'venmo-otp': otpCode
-            });
-            access = yield ans2.json();
-            if (!ans2.ok)
-                return;
-        }
-        process.env.access = JSON.stringify(access);
-    }
-    console.log(access);
-    const request = (method, path, body) => __awaiter(void 0, void 0, void 0, function* () {
-        console.log('->', path, body);
-        const response = yield (0, node_fetch_1.default)(`${base}/${path}`, {
-            method: method,
-            body: JSON.stringify(body),
-            headers: {
-                'Authorization': `Bearer ${access === null || access === void 0 ? void 0 : access.access_token}`,
-                'Content-Type': 'application/json'
+    const v = new venmo_typescript_1.Venmo();
+    try {
+        yield v.easyLogin(input.phone_email_or_username, input.password);
+        const recipients = input.usernames.split(',');
+        for (const username of recipients) {
+            const users = yield v.userQuery(username);
+            const user = users.find((user) => user.username.toLowerCase() === username.toLowerCase());
+            if (!user) {
+                core.warning(`User ${username} not found`);
+                continue;
             }
-        });
-        console.log('<-', response);
-        return response.json();
-    });
-    const usernames = input.usernames.split(',');
-    for (const username of usernames) {
-        const searchResponse = yield request('GET', `users?query=${username}&limit=10&offset=0`);
-        const user = searchResponse.data.find((user) => user.username.toLowerCase() === username);
-        console.log('user', user);
+            const paymentResponse = yield v.pay(user.id, input.amount, input.note, input.audience);
+            if (paymentResponse) {
+                core.info(`${input.amount > 0 ? 'Paid' : 'Requested'} ${input.amount} from ${username} successfully`);
+            }
+        }
+    }
+    catch (err) {
+        core.error(err instanceof Error ? err.message : JSON.stringify(err));
     }
 });
 exports["default"] = run;

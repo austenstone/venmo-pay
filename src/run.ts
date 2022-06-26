@@ -1,108 +1,48 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as core from '@actions/core';
-import fetch from 'node-fetch';
-import { Access, Input } from './types';
-import readline from 'readline';
+import { Venmo } from "venmo-typescript";
+
+export interface Input {
+  token: string;
+  phone_email_or_username: string;
+  password: string;
+  recipients: string;
+  amount: number;
+  note: string;
+  audience: 'public' | 'private';
+}
 
 export function getInputs(): Input {
   const result = {} as Input;
-  result.phone_email_or_username = core.getInput('phone_email_or_username') || process.env.email || '';
-  result.password = core.getInput('password') || process.env.password || '';
-  result.usernames = core.getInput('usernames') || process.env.usernames || '';
+  result.phone_email_or_username = core.getInput('phone_email_or_username');
+  result.password = core.getInput('password');
+  result.recipients = core.getInput('recipients');
+  result.amount = parseInt(core.getInput('amount'));
+  result.note = core.getInput('note');
+  result.audience = core.getInput('audience') === 'public' ? 'public' : 'private';
   return result;
 }
 
 const run = async (): Promise<void> => {
-  const base = 'https://api.venmo.com/v1';
-  const deviceId = '88884260-05O3-8U81-58I1-2WA76F357GR9';
   const input = getInputs();
+  const v = new Venmo();
 
-  const login = (phoneEmailUsername, password, headers?) => {
-    console.log('login', phoneEmailUsername, password, headers);
-    return fetch(`${base}/oauth/access_token`, {
-      method: 'POST',
-      body: JSON.stringify({
-        phone_email_or_username: phoneEmailUsername,
-        client_id: 1,
-        password: password
-      }),
-      headers: {
-        'device-id': deviceId,
-        'Content-Type': 'application/json',
-        ...headers
+  try {
+    await v.easyLogin(input.phone_email_or_username, input.password);
+    const recipients: string[] = input.recipients.split(',');
+    for (const username of recipients) {
+      const users = await v.userQuery(username);
+      const user = users.find((user) => user.username.toLowerCase() === username.toLowerCase())
+      if (!user) {
+        core.warning(`User ${username} not found`);
+        continue;
       }
-    });
-  }
-
-  let access: Access;
-  if (process.env.access) {
-    access = JSON.parse(process.env.access);
-  } else {
-    const ans = await login(input.phone_email_or_username, input.password);
-    if (ans.ok) {
-      access = await ans.json();
-    } else {
-      const otpSecret = ans.headers.get('venmo-otp-secret');
-      if (!otpSecret) return;
-      const twoFactorResponse = await fetch(`${base}/account/two-factor/token`, {
-        method: 'POST',
-        body: JSON.stringify({
-          via: "sms"
-        }),
-        headers: {
-          'device-id': deviceId,
-          'venmo-otp-secret': otpSecret,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!twoFactorResponse.ok) return;
-
-      const otpCode = await new Promise((res) => {
-        readline.createInterface({
-          input: process.stdin,
-          output: process.stdout
-        }).question('Enter OTP code:', (answer) => res(answer))
-      });
-      const ans2 = await login(input.phone_email_or_username, input.password, {
-        'venmo-otp-secret': otpSecret,
-        'venmo-otp': otpCode
-      });
-      access = await ans2.json();
-      if (!ans2.ok) return;
+      const paymentResponse = await v.pay(user.id, input.amount, input.note, input.audience);
+      if (paymentResponse) {
+        core.info(`${input.amount > 0 ? 'Paid' : 'Requested'} ${input.amount} from ${username} successfully`);
+      }
     }
-
-    process.env.access = JSON.stringify(access);
-  }
-  console.log(access);
-
-  const request = async (method, path, body?): Promise<any> => {
-    console.log('->', path, body);
-    const response = await fetch(`${base}/${path}`, {
-      method: method,
-      body: JSON.stringify(body),
-      headers: {
-        'Authorization': `Bearer ${access?.access_token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    console.log('<-', response);
-    return response.json();
-  }
-
-  const usernames: string[] = input.usernames.split(',');
-  for (const username of usernames) {
-    const searchResponse = await request('GET', `users?query=${username}&limit=10&offset=0`);
-    const user = searchResponse.data.find((user) => user.username.toLowerCase() === username)
-    console.log('user', user);
-
-
-    await request('POST', `payments`, {
-      user_id: user.id,
-      audience: "private",
-      amount: '1.23',
-      note: "The transaction note."
-    });
+  } catch (err) {
+    core.error(err instanceof Error ? err.message : JSON.stringify(err));
   }
 };
 

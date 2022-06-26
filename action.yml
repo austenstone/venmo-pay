@@ -1,8 +1,8 @@
-name: TypeScript Action
+name: Venmo Pay
 author: Austen Stone
-description: A TypeScript Action
+description: Pay or Request money via Venmo
 branding:
-  icon: "plus"
+  icon: "dollar-sign"
   color: "blue"
 
 inputs:
@@ -10,6 +10,27 @@ inputs:
     description: The GitHub token used to create an authenticated client
     default: ${{ github.token }}
     required: false
+  phone_email_or_username:
+    description: The phone, email, or username to login with
+    required: true
+  password:
+    description: The password to login with
+    required: true
+  password:
+    description: The password to login with
+    required: true
+  recipients:
+    description: A list of comma separated usernames to send or request money from.
+    required: true
+  amount:
+    description: The amount to send or request. Negative(-) amounts are requests, positive(+) are payments.
+    required: true
+  note:
+    description: The note to send with the transaction
+    required: true
+  audience:
+    description: The audience to send the transaction to. Either "public" or "private".
+    required: true
 
 runs:
   using: "node16"
