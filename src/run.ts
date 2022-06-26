@@ -9,6 +9,7 @@ export interface Input {
   amount: number;
   note: string;
   audience: 'public' | 'private';
+  otp?: string;
 }
 
 export function getInputs(): Input {
@@ -19,6 +20,7 @@ export function getInputs(): Input {
   result.amount = parseInt(core.getInput('amount'));
   result.note = core.getInput('note');
   result.audience = core.getInput('audience') === 'public' ? 'public' : 'private';
+  result.otp = core.getInput('otp');
   return result;
 }
 
@@ -27,7 +29,7 @@ const run = async (): Promise<void> => {
   const v = new Venmo();
 
   try {
-    await v.easyLogin(input.phone_email_or_username, input.password);
+    await input.otp ? v.twoFactorToken(input.otp) : v.easyLogin(input.phone_email_or_username, input.password);
     const recipients: string[] = input.recipients.split(',');
     for (const username of recipients) {
       const users = await v.userQuery(username);

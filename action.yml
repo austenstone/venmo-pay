@@ -24,6 +24,9 @@ inputs:
   audience:
     description: The audience to send the transaction to. Either "public" or "private"
     required: true
+  otp:
+    description: The one time password sent to you over text.
+    required: false
 
 runs:
   using: "node16"
