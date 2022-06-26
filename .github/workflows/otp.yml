@@ -1,8 +1,11 @@
-name: Rent
+name: Rent OTP
+
 on:
-  push:
-  pull_request:
   workflow_dispatch:
+    inputs:
+      otp:
+        description: 'Venmo OTP received by text.'
+        required: true
 
 jobs:
   run:
@@ -18,3 +21,4 @@ jobs:
           amount: -1.00
           note: Rent
           audience: Public
+          otp: ${{ inputs.otp }}

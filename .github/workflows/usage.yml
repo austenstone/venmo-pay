@@ -1,0 +1,21 @@
+name: Rent
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    name: Request Rent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./
+        with:
+          phone_email_or_username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          recipients: Goosetoe,matthew-horwitz92
+          amount: -1.00
+          note: Rent
+          audience: Public
