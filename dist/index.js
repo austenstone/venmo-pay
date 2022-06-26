@@ -5996,6 +5996,7 @@ function getInputs() {
     result.note = core.getInput('note');
     result.audience = core.getInput('audience') === 'public' ? 'public' : 'private';
     result.otp = core.getInput('otp');
+    result.otpSecret = core.getInput('otp_secret');
     return result;
 }
 exports.getInputs = getInputs;
@@ -6003,7 +6004,32 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     const input = getInputs();
     const v = new venmo_typescript_1.Venmo();
     try {
-        (yield input.otp) ? v.twoFactorToken(input.otp) : v.easyLogin(input.phone_email_or_username, input.password);
+        if (input.otp) {
+            v.twoFactorToken(input.otp);
+            try {
+                yield v.login(input.phone_email_or_username, input.password, {
+                    'venmo-otp-secret': input.otpSecret,
+                    'venmo-otp': input.otp
+                });
+            }
+            catch (_a) {
+                throw new Error('Two factor failed. Check code.');
+            }
+        }
+        else {
+            const loginRes = yield v.login(input.phone_email_or_username, input.password);
+            if (loginRes && !loginRes.ok) {
+                const otpSecret = loginRes.headers.get('venmo-otp-secret');
+                if (!otpSecret) {
+                    throw new Error('No otp secret');
+                }
+                const otpRes = yield v.twoFactorToken(otpSecret);
+                if (!otpRes.ok) {
+                    throw new Error('Two factor request failed');
+                }
+                core.setOutput('otp', otpSecret);
+            }
+        }
         const recipients = input.recipients.split(',');
         for (const username of recipients) {
             const users = yield v.userQuery(username);
