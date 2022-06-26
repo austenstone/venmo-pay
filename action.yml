@@ -6,10 +6,6 @@ branding:
   color: "blue"
 
 inputs:
-  github-token:
-    description: The GitHub token used to create an authenticated client
-    default: ${{ github.token }}
-    required: false
   phone_email_or_username:
     description: The phone, email, or username to login with
     required: true
