@@ -5984,7 +5984,7 @@ function getInputs() {
     const result = {};
     result.phone_email_or_username = core.getInput('phone_email_or_username');
     result.password = core.getInput('password');
-    result.usernames = core.getInput('usernames');
+    result.recipients = core.getInput('recipients');
     result.amount = parseInt(core.getInput('amount'));
     result.note = core.getInput('note');
     result.audience = core.getInput('audience') === 'public' ? 'public' : 'private';
@@ -5996,7 +5996,7 @@ const run = () => __awaiter(void 0, void 0, void 0, function* () {
     const v = new venmo_typescript_1.Venmo();
     try {
         yield v.easyLogin(input.phone_email_or_username, input.password);
-        const recipients = input.usernames.split(',');
+        const recipients = input.recipients.split(',');
         for (const username of recipients) {
             const users = yield v.userQuery(username);
             const user = users.find((user) => user.username.toLowerCase() === username.toLowerCase());

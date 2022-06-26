@@ -12,9 +12,6 @@ inputs:
   password:
     description: The password to login with
     required: true
-  password:
-    description: The password to login with
-    required: true
   recipients:
     description: A list of comma separated usernames to send or request money from.
     required: true
@@ -25,7 +22,7 @@ inputs:
     description: The note to send with the transaction
     required: true
   audience:
-    description: The audience to send the transaction to. Either "public" or "private".
+    description: The audience to send the transaction to. Either "public" or "private"
     required: true
 
 runs:

@@ -1,54 +1,43 @@
-# TypeScript Action Template
 
-This repository serves as a [template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template) for TypeScript [Actions](https://docs.github.com/en/actions).
-<br>For JavaScript see [austenstone/action-javascript](https://github.com/austenstone/action-javascript).
+## Usage
+Create a workflow (eg: `.github/workflows/venmo.yml`). See [Creating a Workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file).
 
-## 🧑‍💻 Development
-Use [ts-node-dev](https://github.com/wclr/ts-node-dev) for a hot-reload dev environment.
-```
-npm run dev
-```
+Add secrets `USERNAME` and `PASSWORD`. the `USERNAME` can be a username, email, or phone number.
 
-## 🔨 Build
-Build the project with [ncc](https://github.com/vercel/ncc).<br>The build artifacts will be stored in a single file `dist/index.js`.
-```
-npm run build
-```
-
-## 🧪 Test
-Test the project with [jest](https://github.com/facebook/jest).
-```
-npm test
-```
-
-## 🧹 Lint
-Linting is done with [eslint](https://github.com/eslint/eslint).
-```
-npm run lint
-```
-
-## 🏃 Usage
-[Create a workflow](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file) (eg: [`.github/workflows/run.yml`](.github/workflows/usage.yaml))
-
-### Default Workflow
+#### Example: Request money on the 1st of every month
 ```yml
-name: "Add to Project"
+name: Request Rent
+
 on:
+  schedule:
+    - cron: '0 0 1 * *'
   workflow_dispatch:
 
 jobs:
-  run:
+  add_to_project:
     runs-on: ubuntu-latest
     steps:
-      - uses: austenstone/action-typescript@main
+      - uses: austenstone/venmo-pay@main
+        with:
+          phone_email_or_username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          recipients: Austen-Stone,user1,user2,user3
+          amount: -1.00
+          note: Rent
+          audience: Public
 ```
 
-## ➡️ Input Settings
+## Input Settings
 Various inputs are defined in [`action.yml`](action.yml):
 
 | Name | Description | Default |
 | --- | - | - |
-| github&#x2011;token | Token to use to authorize. | ${{&nbsp;github.token&nbsp;}} |
+| **phone_email_or_username** | The phone, email, or username to login with | N/A |
+| **password** | The password to login with | N/A |
+| **recipients** | A list of comma separated usernames to send or request money from. | N/A |
+| **amount** | The amount to send or request. Negative(-) amounts are requests, positive(+) are payments | N/A |
+| **note** | The note to send with the transaction | N/A |
+| **audience** | The audience to send the transaction to. Either "public" or "private" | N/A |
 
-## Further help
-To get more help on the Actions see [documentation](https://docs.github.com/en/actions).
+## References
+- [Venmo](https://venmo.com/)

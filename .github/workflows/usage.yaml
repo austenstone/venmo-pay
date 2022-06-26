@@ -1,4 +1,4 @@
-name: TypeScript Action Workflow
+name: Rent
 on:
   push:
   pull_request:
@@ -6,10 +6,15 @@ on:
 
 jobs:
   run:
-    name: Run Action
+    name: Request Rent
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ./
         with:
           phone_email_or_username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          recipients: Goosetoe,matthew-horwitz92
+          amount: -1.00
+          note: Rent
+          audience: Public
