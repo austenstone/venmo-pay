@@ -13,6 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Get persistent OTP value
+        id: otp
+        uses: aaimio/get-persistent-value@v1.1.2
+        with:
+          key: otp_secret
+          access_token: ${{ secrets.PERSISTENT_VALUE_ACCESS_TOKEN }}
       - uses: ./
         with:
           phone_email_or_username: ${{ secrets.USERNAME }}
@@ -22,3 +28,4 @@ jobs:
           note: Rent
           audience: Public
           otp: ${{ inputs.otp }}
+          otp_secret: ${{ steps.otp.outputs.value }}

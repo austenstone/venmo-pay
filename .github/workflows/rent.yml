@@ -12,6 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./
+        id: venmo-pay
         with:
           phone_email_or_username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
@@ -19,3 +20,9 @@ jobs:
           amount: -1.00
           note: Rent
           audience: Public
+      - name: Persistent OTP secret
+        uses: aaimio/set-persistent-value@v1.1.2
+        with:
+          key: otp_secret
+          value: ${{ steps.venmo-pay.outputs.otp_secret }}
+          access_token: ${{ secrets.PERSISTENT_VALUE_ACCESS_TOKEN }}
