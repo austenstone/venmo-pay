@@ -3890,9 +3890,6 @@ class Venmo {
                 client_id: 1,
                 password: password
             }, Object.assign({ 'device-id': this.deviceId }, headers));
-            if (!res.ok) {
-                throw (`Login failed ${res.status}`);
-            }
             this.access = yield res.json();
             return res;
         });
@@ -3905,39 +3902,34 @@ class Venmo {
             });
         };
         this.easyLogin = (phoneEmailUsername, password) => __awaiter(this, void 0, void 0, function* () {
-            let loginRes;
-            try {
-                loginRes = yield this.login(phoneEmailUsername, password);
+            const loginRes = yield this.login(phoneEmailUsername, password);
+            if (loginRes.ok)
+                return this.access;
+            const otpSecret = loginRes.headers.get('venmo-otp-secret');
+            if (!otpSecret) {
+                throw new Error('No otp secret');
             }
-            catch (err) {
-                const otpSecret = loginRes.headers.get('venmo-otp-secret');
-                if (!otpSecret) {
-                    throw new Error('No otp secret');
-                }
-                const otpRes = yield this.twoFactorToken(otpSecret);
-                if (!otpRes.ok) {
-                    throw new Error('Two factor request failed');
-                }
-                const otpCode = yield new Promise((res) => {
-                    readline_1.default.createInterface({
-                        input: process.stdin,
-                        output: process.stdout
-                    }).question('Enter OTP code:', (answer) => res(answer));
-                });
-                try {
-                    yield this.login(phoneEmailUsername, password, {
-                        'venmo-otp-secret': otpSecret,
-                        'venmo-otp': otpCode
-                    });
-                }
-                catch (_a) {
-                    throw new Error('Two factor failed. Check code.');
-                }
+            const otpRes = yield this.twoFactorToken(otpSecret);
+            if (!otpRes.ok) {
+                throw new Error('Two factor request failed');
             }
+            const otpCode = yield new Promise((res) => {
+                readline_1.default.createInterface({
+                    input: process.stdin,
+                    output: process.stdout
+                }).question('Enter OTP code:', (answer) => res(answer));
+            });
+            const otpLogin = yield this.login(phoneEmailUsername, password, {
+                'venmo-otp-secret': otpSecret,
+                'venmo-otp': otpCode
+            });
+            if (otpLogin.ok)
+                return this.access;
+            throw new Error('Two factor failed. Check code.');
         });
         this.request = (method, path, body) => __awaiter(this, void 0, void 0, function* () {
-            var _b;
-            if (!((_b = this.access) === null || _b === void 0 ? void 0 : _b.access_token)) {
+            var _a;
+            if (!((_a = this.access) === null || _a === void 0 ? void 0 : _a.access_token)) {
                 throw new Error('Not logged in');
             }
             return this._fetch(method, path, body, {
