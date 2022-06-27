@@ -1,3 +1,4 @@
+Action to pay or request money using the [Venmo API](https://github.com/austenstone/venmo-typescript).
 
 ## Usage
 Create a workflow (eg: `.github/workflows/venmo.yml`). See [Creating a Workflow file](https://help.github.com/en/articles/configuring-a-workflow#creating-a-workflow-file).
