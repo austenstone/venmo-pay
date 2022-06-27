@@ -16,7 +16,7 @@ jobs:
         with:
           phone_email_or_username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          recipients: Goosetoe,matthew-horwitz92
+          recipients: ${{ secrets.RECIPIENTS }}
           amount: -1.00
           note: Rent
           audience: Public
