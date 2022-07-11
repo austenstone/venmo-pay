@@ -27,6 +27,13 @@ inputs:
   otp:
     description: The one time password sent to you over text.
     required: false
+  otp_secret:
+    description: Secret code output from login attempt if 2FA is required.
+    required: false
+
+outputs:
+  otp_secret:
+    description: Secret code output if 2FA is required.
 
 runs:
   using: "node16"

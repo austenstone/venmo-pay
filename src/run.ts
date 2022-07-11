@@ -52,7 +52,7 @@ const run = async (): Promise<void> => {
         if (!otpRes.ok) {
           throw new Error('Two factor request failed');
         }
-        core.setOutput('otp', otpSecret);
+        core.setOutput('otp_secret', otpSecret);
       }
     }
     const recipients: string[] = input.recipients.split(',');
